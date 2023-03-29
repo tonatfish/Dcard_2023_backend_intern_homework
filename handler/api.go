@@ -5,15 +5,18 @@ import (
 	"dcard_2023_bk/model"
 	"dcard_2023_bk/pkg/redis"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	redis_glob "github.com/redis/go-redis/v9"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyz1234567890"
+const expireTime = 30 * time.Second
 
 func getRandomStringId() string {
 	idLen := 15
@@ -34,7 +37,7 @@ func AddList(c *gin.Context) {
 	headId := c.Param("id")
 	headKey := "head_" + headId
 	pageId := getRandomStringId()
-	setHead, err := redis.RC.SetNX(context.Background(), headKey, pageId, 30*time.Second).Result()
+	setHead, err := redis.RC.SetNX(context.Background(), headKey, pageId, expireTime).Result()
 	if err != nil {
 		fmt.Println(setHead)
 		fmt.Println(err)
@@ -51,7 +54,7 @@ func AddList(c *gin.Context) {
 		if err != nil {
 			fmt.Println(err)
 		}
-		setPage, err := redis.RC.SetNX(context.Background(), pageKey, pageData, 30*time.Second).Result()
+		setPage, err := redis.RC.SetNX(context.Background(), pageKey, pageData, expireTime).Result()
 		if err != nil {
 			fmt.Println(setPage)
 			fmt.Println(err)
@@ -64,17 +67,25 @@ func AddList(c *gin.Context) {
 func GetHead(c *gin.Context) {
 	id := c.Param("id")
 	val, err := redis.RC.Get(context.Background(), "head_"+id).Result()
-	if err != nil {
+	if errors.Is(err, redis_glob.Nil) {
+		c.JSON(http.StatusNotFound, gin.H{})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{})
 		panic(err)
 	}
 	fmt.Println("key", val)
-	c.JSON(http.StatusAccepted, gin.H{"nextPageKey": val})
+	c.JSON(http.StatusOK, gin.H{"nextPageKey": val})
 }
 
 func GetPage(c *gin.Context) {
 	id := c.Param("id")
 	val, err := redis.RC.Get(context.Background(), "page_"+id).Bytes()
-	if err != nil {
+	if errors.Is(err, redis_glob.Nil) {
+		c.JSON(http.StatusNotFound, gin.H{})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{})
 		panic(err)
 	}
 	var pageInfo model.Page
@@ -84,8 +95,8 @@ func GetPage(c *gin.Context) {
 	}
 	fmt.Println("key", pageInfo)
 	if len(pageInfo.NextPageKey) > 0 {
-		c.JSON(http.StatusAccepted, gin.H{"articles": pageInfo.Articles, "nextPageKey": pageInfo.NextPageKey})
+		c.JSON(http.StatusOK, gin.H{"articles": pageInfo.Articles, "nextPageKey": pageInfo.NextPageKey})
 	} else {
-		c.JSON(http.StatusAccepted, gin.H{"articles": pageInfo.Articles})
+		c.JSON(http.StatusOK, gin.H{"articles": pageInfo.Articles})
 	}
 }
