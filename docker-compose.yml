@@ -1,0 +1,39 @@
+version: "3.8"
+services:
+  db:
+    image: postgres:13.2-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: abcd
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./sqls:/docker-entrypoint-initdb.d/
+    ports:
+      - "5432:5432"
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: xxx@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: abcd
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - "${ADMIN_PORT}:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    links:
+      - "db:pgsql-server"
+  redis:
+    restart: always
+    container_name: redis
+    image: redis:alpine
+    ports:
+      - ${REDIS_PORT}:6379
+    volumes:
+      - /data/redis-data:/data
+
+volumes:
+  db-data:
+  pgadmin-data:
+  redis:
