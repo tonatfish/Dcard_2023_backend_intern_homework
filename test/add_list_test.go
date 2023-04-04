@@ -13,7 +13,7 @@ import (
 )
 
 func TestAddList(t *testing.T) {
-	r := SetUpRouter()
+	r := setupRouter()
 	r.POST("/list/:id", handler.AddList)
 
 	row1 := []string{"1", "2", "3"}
