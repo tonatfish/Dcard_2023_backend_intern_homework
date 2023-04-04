@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"dcard_2023_bk/pkg/postgres"
 	"dcard_2023_bk/pkg/redis"
 	"testing"
 
@@ -19,5 +20,11 @@ func SetUpRouter() *gin.Engine {
 func TestRedisConnection(t *testing.T) {
 	redis.Init()
 	_, err := redis.RC.Ping(context.Background()).Result()
+	assert.Equal(t, err, nil)
+}
+
+func TestPostgreSQLConnection(t *testing.T) {
+	postgres.Init()
+	err := postgres.PC.Ping()
 	assert.Equal(t, err, nil)
 }
