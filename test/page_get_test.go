@@ -11,12 +11,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetPageExist(t *testing.T) {
+func TestGetPageFromRedis(t *testing.T) {
 	r := setupRouter()
 	r.GET("/page/:id", handler.GetPage)
+	defer teardown()
 
 	pageId := "exist"
 
@@ -40,11 +42,41 @@ func TestGetPageExist(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
+func TestGetPageFromPostgres(t *testing.T) {
+	r := setupRouter()
+	r.GET("/page/:id", handler.GetPage)
+	defer teardown()
+
+	pageId := "exist"
+
+	var newPage model.Page
+	newPage.Articles = []string{"1", "2", "3"}
+	newPage.NextPageKey = "nextexist"
+	pageData, err := json.Marshal(newPage)
+	if err != nil {
+		panic(err)
+	}
+
+	mockPostgresServer.ExpectQuery("^SELECT .*").WithArgs(pageId).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "data"}).
+			AddRow(pageId, pageData))
+
+	req, _ := http.NewRequest("GET", "/page/"+pageId, nil)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
 func TestGetPageNotExist(t *testing.T) {
 	r := setupRouter()
 	r.GET("/page/:id", handler.GetPage)
+	defer teardown()
 
 	pageId := "notexist"
+
+	mockPostgresServer.ExpectQuery("^SELECT .*").WithArgs(pageId).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "data"}))
 
 	req, _ := http.NewRequest("GET", "/page/"+pageId, nil)
 

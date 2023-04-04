@@ -15,6 +15,7 @@ import (
 func TestAddList(t *testing.T) {
 	r := setupRouter()
 	r.POST("/list/:id", handler.AddList)
+	defer teardown()
 
 	row1 := []string{"1", "2", "3"}
 	row2 := []string{"4", "5", "6"}

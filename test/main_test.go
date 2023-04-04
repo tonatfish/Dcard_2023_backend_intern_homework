@@ -6,6 +6,7 @@ import (
 	"dcard_2023_bk/pkg/redis"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/gin-gonic/gin"
 	redis_glob "github.com/redis/go-redis/v9"
@@ -13,16 +14,26 @@ import (
 )
 
 var redisServer *miniredis.Miniredis
+var mockPostgresServer sqlmock.Sqlmock
 
 func setupRouter() *gin.Engine {
 	redisServer = mockRedis()
 	redis.RC = redis_glob.NewClient(&redis_glob.Options{
 		Addr: redisServer.Addr(),
 	})
+	mockPostgres()
 
 	router := gin.Default()
 	router.RedirectFixedPath = true
 	return router
+}
+
+func mockPostgres() {
+	var err error
+	postgres.PC, mockPostgresServer, err = sqlmock.New()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func mockRedis() *miniredis.Miniredis {
