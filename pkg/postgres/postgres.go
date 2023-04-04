@@ -38,7 +38,7 @@ func Init() {
 }
 
 func InsertPage(id string, data string) error {
-	insertDynStmt := `insert into "pages"("id", "data") values($1, $2)`
+	insertDynStmt := `INSERT INTO "pages"("id", "data") VALUES($1, $2)`
 	_, err := PC.Exec(insertDynStmt, id, data)
 	return err
 }
